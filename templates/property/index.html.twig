@@ -1,0 +1,27 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+<div class="container mt-4">
+    <h1>Liste des propriétés</h1>
+
+    <div class="row">
+        {% for property in properties %}
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    {% if property.mainImage %}
+                        <img src="{{ property.mainImage.url }}" class="card-img-top" alt="{{ property.title }}">
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ property.title }}</h5>
+                        <p>{{ property.getShortDescription(80) }}</p>
+                        <p><strong>{{ property.city }}</strong> - {{ property.price|number_format(0, ',', ' ') }} €</p>
+                        <a href="{{ path('property_show', { id: property.id }) }}" class="btn btn-primary">Voir détail</a>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <p>Aucune propriété trouvée.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

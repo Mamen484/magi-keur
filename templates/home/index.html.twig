@@ -1,0 +1,147 @@
+{# templates/home/index.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Accueil - MamenHub{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {# Ajoute ici tes scripts Symfony UX ou fetch JS pour appels API #}
+{% endblock %}
+
+
+{% block body %}
+<div class="container my-5">
+
+    <h1 class="mb-4">Bienvenue sur MamenHub</h1>
+
+    <div class="jumbotron text-center mb-5">
+        <h3 class="display-4 fw-bold">Trouver la meilleure offre immobilière</h1>
+        <p class="lead">Villes, maisons, appartements et biens disponibles en temps réel.</p>
+    </div>
+
+    {# === 1. Moteur de recherche === #}
+    <section id="search" class="mb-5">
+        <h2>Rechercher une propriété</h2>
+        <form id="property-search-form" class="row g-3" method="get" action="{{ path('property_index') }}">
+            <div class="col-md-3">
+                <label for="city" class="form-label">Ville</label>
+                <input type="text" id="city" name="city" class="form-control" placeholder="Ex : Dakar">
+            </div>
+            <div class="col-md-3">
+                <label for="type" class="form-label">Catégorie</label>
+                <select id="type" name="type" class="form-select">
+                    <option value="">Tous</option>
+                    <option value="APPARTEMENT">Appartement</option>
+                    <option value="MAISON">Maison</option>
+                    <option value="TERRAIN">Maison</option>
+                    <option value="LOCAL_COMMERCIAL">Local Commercial</option>
+                    <option value="GARAGE">Garage</option>
+                    <option value="PARKING">Parking</option>
+                    <option value="AUTRE">Autre</option>
+                    {# adapte selon tes PropertyType #}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="price" class="form-label">Prix max (€)</label>
+                <input type="number" id="price" name="max_price" class="form-control" min="0" step="10000" placeholder="Prix max (€) Ex : 50">
+            </div>
+            <div class="col-md-2">
+                <label for="date" class="form-label">Disponible à partir du</label>
+                <input type="date" id="date" name="start_date" class="form-control">
+            </div>
+            <div class="col-md-2">
+                <label for="date" class="form-label">Disponible jusqu'au</label>
+                <input type="date" id="date" name="end_date" class="form-control">
+            </div>
+        </form>
+    </section>
+
+    <!-- Résultats de recherche -->
+    {# === 2. Résultats de recherche (avec filtres dynamiques) === #}
+    <section class="mb-5">
+        <h2 class="mb-4">Résultats de votre recherche</h2>
+        <div class="col-12 row g-3">
+            <div id="properties-list">
+                {% include 'home/_properties_list.html.twig' with { properties: properties } %}
+            </div>
+        </div>
+    </section>
+
+    <!-- Prestataires populaires -->
+    <section class="mb-5">
+        <h2>🏆 Prestataires populaires (Top 10 réservations)</h2>
+        <table class="table table-striped" {{ stimulus_controller('refresh-list') }}>
+            <thead>
+                <tr>
+                    <th>Titre</th>
+                    <th>Description courte</th>
+                    <th>Type</th>
+                    <th>Prix</th>
+                    <th>Ville</th>
+                    <th>Réservations</th>
+                    <th>Détail</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in popularProperties %}
+                {% set p = row.property %}
+                <tr>
+                    <td>{{ p.title }}</td>
+                    <td>{{ p.getShortDescription(50) }}</td>
+                    <td>{{ p.type.value }}</td>
+                    <td>{{ p.price }} €</td>
+                    <td>{{ p.city }}</td>
+                    <td>{{ row.reservationsCount }}</td>
+                    <td><a href="{{ path('property_show', {id: p.id}) }}">Voir</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+        <hr>
+
+    <!-- Derniers avis -->
+    <section>
+        <h2>⭐ Prestataires les mieux notés (Top 10 avis)</h2>
+        <div class="row" {{ stimulus_controller('refresh-cards') }}>
+            {% for row in bestRatedProperties %}
+                {% set p = row.property %}
+                <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                    <h5>{{ p.title }}</h5>
+                    <p>{{ p.getShortDescription(80) }}</p>
+                    <p>⭐ {{ row.avgRating is not null ? row.avgRating|number_format(1) : '—' }} ({{ row.reviewsCount }} avis)</p>
+                    <a href="{{ path('property_reviews', {id: p.id}) }}">Voir les avis</a>
+                    </div>
+                </div>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+
+<script>
+document.getElementById('property-search-form').addEventListener('change', function() {
+    const formData = new FormData(this);
+    const params = new URLSearchParams(formData);
+    const locale = document.documentElement.lang || 'fr';
+
+    fetch('/' + locale + '/home?' + params.toString(), {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(res => res.text())
+    .then(html => {
+        document.getElementById('properties-list').innerHTML = html;
+    });
+});
+</script>
+{% endblock %}

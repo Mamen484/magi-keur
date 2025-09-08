@@ -1,0 +1,24 @@
+{# templates/home/_properties_list.html.twig #}
+<div class="row row-cols-1 row-cols-md-3 g-4" id="properties-list">
+  {% for property in properties %}
+    <div class="col">
+      <div class="card h-100 shadow-sm">
+        {% if property.mainImage %}
+          <img src="{{ property.mainImage.url }}" class="card-img-top" alt="{{ property.title }}">
+        {% else %}
+          <img src="{{ asset('images/default-property.jpg') }}" class="card-img-top" alt="Image par défaut">
+        {% endif %}
+        <div class="card-body">
+          <h5 class="card-title">{{ property.title }}</h5>
+          <p class="card-text text-truncate">{{ property.getShortDescription(100) }}</p>
+          <p><strong>{{ property.city }}</strong> - {{ property.price|number_format(0, ',', ' ') }} €</p>
+          {# <p><strong>Ville :</strong> {{ property.city }}</p>
+          <p><strong>Prix :</strong> € {{ property.price|number_format(0, '.', ' ') }} €</p> #}
+          <a href="{{ path('property_show', {'id': property.id}) }}" class="btn btn-outline-primary btn-sm">Voir détails</a>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <p class="text-muted">Aucune propriété trouvée.</p>
+  {% endfor %}
+</div>

@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+<div class="container mt-4">
+    <h1>{{ property.title }}</h1>
+
+    {% if property.mainImage %}
+        <img src="{{ property.mainImage.url }}" class="img-fluid mb-3" alt="{{ property.title }}">
+    {% endif %}
+
+    <p><strong>Ville :</strong> {{ property.city }}</p>
+    <p><strong>Prix :</strong> {{ property.price|number_format(0, ',', ' ') }} €</p>
+    <p>{{ property.description|nl2br }}</p>
+
+    <a href="{{ path('property_index') }}" class="btn btn-secondary mt-3">Retour à la liste</a>
+</div>
+{% endblock %}

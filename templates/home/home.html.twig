@@ -1,0 +1,124 @@
+{% extends 'base.html.twig' %}
+
+{% block body_id 'blog_index' %}
+
+{% block title %}
+    {{ 'title.homepage'|trans }}
+{% endblock %}
+
+{% block main %}
+<div class="container my-4">
+    <div class="jumbotron text-center mb-5">
+        <h1 class="display-4 fw-bold">Trouver la meilleure offre immobilière</h1>
+        <p class="lead">Villes, maisons, appartements et biens disponibles en temps réel.</p>
+    </div>
+
+    <!-- Moteur de recherche -->
+    <div class="card p-4 mb-5 shadow-sm">
+        <form method="get" action="{{ path('home_index', {'_locale': app.request.locale}) }}" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label for="city" class="form-label">Ville</label>
+                <input type="text" id="city" name="city" value="{{ app.request.get('city') }}" class="form-control" placeholder="ex : Dakar, Paris...">
+            </div>
+            <div class="col-md-3">
+                <label for="category" class="form-label">Catégorie</label>
+                <select id="category" name="category" class="form-select">
+                    <option value="">Toutes</option>
+                    <option value="MAISON" {{ app.request.get('category') == 'MAISON' ? 'selected' }}>Maison</option>
+                    <option value="APPARTEMENT" {{ app.request.get('category') == 'APPARTEMENT' ? 'selected' }}>Appartement</option>
+                    <option value="STUDIO" {{ app.request.get('category') == 'STUDIO' ? 'selected' }}>Studio</option>
+                    <option value="TERRAIN" {{ app.request.get('category') == 'TERRAIN' ? 'selected' }}>Terrain</option>
+                    <option value="LOCAL_COMMERCIAL" {{ app.request.get('category') == 'LOCAL_COMMERCIAL' ? 'selected' }}>Local commercial</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="date" class="form-label">Date d’ajout</label>
+                <input type="date" id="date" name="date" value="{{ app.request.get('date') }}" class="form-control">
+            </div>
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary">Rechercher</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Offres à la une -->
+    <section class="mb-5">
+        <h2 class="mb-4">Offres à la une</h2>
+        <div class="row g-3">
+            {% for property in featuredProperties %}
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm">
+                        <img src="{{ property.coverImage ?? '/assets/img/property-default.jpg' }}" class="card-img-top" alt="Photo du bien">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ property.title }}</h5>
+                            <p class="card-text">{{ property.address }}, {{ property.city }}</p>
+                            <p class="card-text fw-bold text-primary">{{ property.price|number_format(0, ',', ' ') }} €</p>
+                        </div>
+                        <div class="card-footer bg-white">
+                            {# <a href="{{ path('property_show', {'id': property.id}) }}" class="btn btn-outline-primary w-100">Voir l'offre</a> #}
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="col-12">
+                    <div class="alert alert-info">Aucune offre trouvée.</div>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Prestataires populaires -->
+    <section class="mb-5">
+        <h2 class="mb-4">Prestataires populaires</h2>
+        <div class="row g-3">
+            {% for provider in popularProviders %}
+                <div class="col-md-3">
+                    <div class="card h-100 shadow">
+                        <div class="card-body text-center">
+                            <img src="{{ provider.propertyImages.url ?? '/assets/img/avatar-default.png' }}" alt="Avatar" class="rounded-circle mb-2" width="72" height="72">
+                            <h6 class="card-title mb-1">{{ provider.title}}</h6>
+                            <div class="mb-1">
+                                <p class="mb-1">"{{ provider.type }}"</p>
+                                <span class="badge bg-success">{{ provider.rating|default(4) }}/5</span>
+                            </div>
+                            <small class="text-muted">{{ provider.city }}</small>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="col-12"><div class="alert alert-secondary">Aucun prestataire disponible.</div></div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Derniers avis -->
+    <section>
+        <h2 class="mb-4">Avis récents</h2>
+        <div class="row g-3">
+            {% for review in latestReviews %}
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 bg-light">
+                        <div class="card-body">
+                            <blockquote class="blockquote">
+                                <p class="mb-1">"{{ review.content|u.truncate(120, '…') }}"</p>
+                                <footer class="blockquote-footer">
+                                    <span>{{ review.author.fullName ?? review.author.username }}</span>
+                                    <span class="text-warning">{% for i in 1..(review.rating|default(5)) %}★{% endfor %}</span>
+                                </footer>
+                            </blockquote>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="col-12"><div class="alert alert-secondary">Aucun avis encore publié.</div></div>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block sidebar %}
+    {{ parent() }}
+    {{ show_source_code(_self) }}
+    {{ include('blog/_rss.html.twig') }}
+{% endblock %}
