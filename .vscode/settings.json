@@ -1,0 +1,14 @@
+{
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "magi",
+            "database": "magi",
+            "username": "magi_user",
+            "password": "magi_pass"
+        }
+    ]
+}

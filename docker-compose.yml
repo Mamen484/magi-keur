@@ -1,0 +1,112 @@
+services:
+  traefik:
+    image: traefik:v3.4
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./certs:/certs:ro
+      - ./dynamic:/dynamic:ro
+    command:
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.http.tls=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=proxy"
+      - "--providers.file.filename=/dynamic/tls.yaml"
+      - "--api.dashboard=true"
+      - "--api.insecure=false"
+      - "--accesslog=true"
+      - "--log.level=INFO"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`dashboard.localhost`)"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=admin:$$apr1$$no1TVI9n$$Q.Pkl4Y9aAqfhn2LdoQLu0"
+      - "traefik.http.routers.dashboard.middlewares=dashboard-auth@docker"
+    networks:
+      - proxy
+
+  database:
+    image: postgis/postgis:16-3.4
+    container_name: database
+    restart: unless-stopped
+    ports:
+      - "5432:5432" 
+    environment:
+      POSTGRES_DB: magi
+      POSTGRES_USER: magi_user
+      POSTGRES_PASSWORD: magi_pass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - proxy
+
+  php:
+    build:
+      context: .
+      dockerfile: ./docker/php/Dockerfile
+    container_name: symfony_app
+    volumes:
+      - ./app:/app
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.symfony.rule=Host(`magi.localhost`)"
+      - "traefik.http.routers.symfony.entrypoints=websecure"
+      - "traefik.http.routers.symfony.tls=true"
+      - "traefik.http.services.symfony.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.https-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.routers.symfony.middlewares=https-headers@docker"
+    command: symfony serve --no-tls --port=8000 --allow-http --listen-ip=0.0.0.0
+    networks:
+      - proxy
+    depends_on:
+      - database
+      - mercure
+
+  mercure:
+    image: dunglas/mercure
+    container_name: mercure
+    restart: unless-stopped
+    expose:
+      - "80"   # Accessible depuis le réseau Docker, pas publié sur ta machine
+    environment:
+      ALLOWED_ORIGINS: 'https://magi.localhost'
+      PUBLISH_ALLOWED_ORIGINS: '*'
+      SERVER_NAME: ":80"                                   # écoute en HTTP interne (derrière Traefik) :contentReference[oaicite:1]{index=1}
+      MERCURE_PUBLISHER_JWT_KEY: "!ChangeThisMercureHubJWTSecretKey!"   # même secret que ton app publieuse
+      MERCURE_SUBSCRIBER_JWT_KEY: "!ChangeThisMercureHubJWTSecretKey!"
+      MERCURE_EXTRA_DIRECTIVES: |                          # directives Mercure dans le Caddyfile
+        cors_origins https://magi.localhost
+        publish_origins *
+        anonymous
+        subscriptions
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mercure.rule=Host(`mercure.localhost`)"
+      - "traefik.http.routers.mercure.entrypoints=websecure"
+      - "traefik.http.routers.mercure.tls=true"
+      - "traefik.http.services.mercure.loadbalancer.server.port=80"
+    networks:
+      - proxy
+
+volumes:
+  pgdata:
+
+networks:
+  proxy:
+    name: proxy
+    driver: bridge
